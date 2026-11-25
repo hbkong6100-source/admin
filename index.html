@@ -4,7 +4,7 @@
 .ed-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:8px;z-index:5;padding:14px 18px}
 .ed-status{display:flex;flex-direction:column;font-size:13px;color:#5b6b60}.ed-status.dirty b{color:#b0392b}
 .ed-wrap{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start}
-.ed-nav{display:flex;flex-direction:column;gap:6px;position:sticky;top:96px}.ed-nav button{text-align:left;background:#fff;color:#2c3e32;border-color:#e0e8e1}.ed-nav button.on{background:#edf5ee;border-color:#176b35;color:#176b35;font-weight:700}
+.ed-nav{display:flex;flex-direction:column;gap:6px;position:sticky;top:96px}.ed-nav button{text-align:left;background:#fff;color:#2c3e32;border-color:#e0e8e1}.ed-group{font-size:11px;font-weight:800;letter-spacing:.08em;color:#7a887e;margin:10px 4px 0}.ed-nav button.on{background:#edf5ee;border-color:#176b35;color:#176b35;font-weight:700}
 .ed-body h3{margin:0 0 4px;font-size:20px}.ed-desc{color:#5b6b60;font-size:14px;margin:0 0 20px}
 .ed-field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}.ed-field>label{font-size:13px;font-weight:700}.ed-field em{color:#b0392b;font-style:normal}.ed-field small{font-size:12px}
 .ed-field input:not([type=checkbox]),.ed-field textarea{width:100%;box-sizing:border-box}
@@ -54,4 +54,4 @@ const cell=v=>{let s=String(v!==null&&typeof v==='object'?JSON.stringify(v):v??'
 const csv=[keys.join(','),...data.map(r=>keys.map(k=>cell(r[k])).join(','))].join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));a.download='inquiries-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 
 document.querySelectorAll('.tabbtn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabbtn').forEach(x=>x.classList.toggle('on',x===b));$('viewInquiries').hidden=b.dataset.view!=='viewInquiries';$('viewEditor').hidden=b.dataset.view!=='viewEditor';if(b.dataset.view==='viewEditor'&&window.openContentEditor)window.openContentEditor()}));
-</script><script src="../main/assets/content.js?v=1"></script><script src="editor.js?v=1"></script></body></html>
+</script><script src="../main/assets/content.js?v=2"></script><script src="editor.js?v=2"></script></body></html>

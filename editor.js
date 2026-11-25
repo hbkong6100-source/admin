@@ -6,7 +6,11 @@
 (() => {
 const SITE_BASE = '../main/';
 const BUCKET = 'site-images';
-const HOMECARE_SERVICES = ['입주청소', '이사청소', '거주청소'];
+const SERVICE_OPTIONS = {
+  homecare: ['입주청소', '이사청소', '거주청소'],
+  business: ['사무실 정기청소', '상가 정기청소', '병원·학원 청소', '공용 계단 청소'],
+  appliance: ['에어컨 분해청소', '냉장고 청소', '세탁기 청소']
+};
 const LOCKED_STEPS = ['service', 'size', 'schedule', 'address', 'contact']; // 저장에 꼭 필요한 질문(숨김 불가)
 const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') n.className = v; else if (k.startsWith('on')) n.addEventListener(k.slice(2), v); else if (v === true) n.setAttribute(k, ''); else if (v !== false && v != null) n.setAttribute(k, v); } kids.flat().forEach(c => c != null && n.append(c.nodeType ? c : document.createTextNode(String(c)))); return n; };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -29,6 +33,30 @@ const F = {
   lines: (path, label, o = {}) => ({ t: 'lines', path, label, ...o }),
   list: (path, label, fields, o = {}) => ({ t: 'list', path, label, fields, ...o })
 };
+function pageSections(k, name) {
+  const head = (sec, label, lead = true) => [F.area(`${k}.heads.${sec}.title`, `${label} — 구역 제목`, { rows: 2 })].concat(lead ? [F.area(`${k}.heads.${sec}.lead`, `${label} — 구역 설명`, { rows: 2 })] : []);
+  const pv = k + '.html';
+  return [
+    { id: k + '_text', group: name, name: '문구', desc: `${name} 페이지의 제목과 안내 문구입니다.`, preview: pv, fields: [
+      F.text(`${k}.hero.eyebrow`, '첫 화면 — 작은 제목 (영문)', { max: 40 }), F.area(`${k}.hero.title`, '첫 화면 — 큰 제목', { required: true, rows: 3, hint: '줄바꿈이 그대로 보입니다.' }), F.area(`${k}.hero.lead`, '첫 화면 — 설명 문장', { rows: 2 }),
+      F.image(`${k}.hero.image`, '첫 화면 — 대표 사진'),
+      F.list(`${k}.hero.meta`, '첫 화면 — 아래 안내 3칸', [F.text('k', '항목', { max: 12 }), F.text('v', '내용', { max: 30 })], { min: 0, max: 4 }),
+      ...head('concerns', '고민'), F.list(`${k}.concerns`, '고민 항목', [F.text('title', '제목', { required: true, max: 20 }), F.text('desc', '설명', { max: 50 })], { min: 1, max: 8 }),
+      ...head('types', '서비스 종류'), F.list(`${k}.types`, '서비스 종류 탭', [F.text('title', '서비스 이름', { required: true, max: 20, hint: '견적 질문지 1번 선택지와 이름이 같으면, 탭에서 바로 그 선택지로 시작합니다.' }), F.area('desc', '설명', { rows: 2 }), F.image('image', '사진')], { min: 1, max: 6 }),
+      ...head('scope', '작업 범위', false), F.text(`${k}.scopeNote`, '작업 범위 — 구역 설명', { max: 120 }),
+      F.list(`${k}.scope`, '작업 범위 카드', [F.text('area', '공간/제품 이름', { required: true, max: 20 }), F.lines('items', '작업 항목 (한 줄에 하나)')], { min: 1, max: 8 }),
+      ...head('process', '진행 절차'), F.list(`${k}.process`, '진행 절차 단계', [F.text('title', '단계 이름', { required: true, max: 20 }), F.text('desc', '설명', { max: 60 })], { min: 1, max: 6 }),
+      ...head('extra', '추가 요금·제외 범위', false), F.text(`${k}.extraNote`, '추가 요금·제외 범위 — 구역 설명', { max: 120 }),
+      F.text(`${k}.extra.addedTitle`, '왼쪽 상자 제목', { max: 30, hint: '비워두면 "추가 요금이 생길 수 있는 경우"' }), F.lines(`${k}.extra.added`, '왼쪽 상자 항목 (한 줄에 하나)'),
+      F.text(`${k}.extra.excludedTitle`, '오른쪽 상자 제목', { max: 30, hint: '비워두면 "기본 작업에서 제외되는 범위"' }), F.lines(`${k}.extra.excluded`, '오른쪽 상자 항목 (한 줄에 하나)'),
+      F.area(`${k}.cta.title`, '맨 아래 초록 배너 문구', { rows: 2 }) ] },
+    { id: k + '_gallery', group: name, name: '작업 사진', desc: `${name} 페이지의 전후 사진입니다. 실제 작업 사진만 올려주세요. 고객 얼굴·주소·호수가 보이지 않게 해주세요.`, preview: pv, fields: [
+      ...head('work', '작업 사진'), F.list(`${k}.gallery`, '전후 사진', [F.text('title', '공간/제품 이름', { required: true, max: 20 }), F.image('before', '작업 전 (BEFORE)'), F.image('after', '작업 후 (AFTER)')], { min: 0, max: 12 }) ] },
+    { id: k + '_faq', group: name, name: 'FAQ', desc: `${name} 페이지의 자주 묻는 질문입니다.`, preview: pv, fields: [
+      ...head('faq', 'FAQ'), F.list(`${k}.faq`, '질문과 답변', [F.text('q', '질문', { required: true, max: 80 }), F.area('a', '답변', { required: true, rows: 3 })], { min: 0, max: 20 }) ] },
+    { id: k + '_quote', group: name, name: '견적 질문지', desc: `${name} 견적 질문지입니다. 질문 문구와 선택지를 바꾸거나, 질문을 숨기거나 새로 추가할 수 있습니다.`, preview: pv, custom: 'quote', quoteKey: k }
+  ];
+}
 const SECTIONS = [
   { id: 'site', name: '기본 정보·링크', desc: '홈페이지 아래쪽 사업자 정보와 카카오톡·블로그 링크입니다.', fields: [
     F.text('site.brand', '브랜드 이름', { required: true, max: 30 }),
@@ -44,23 +72,9 @@ const SECTIONS = [
   { id: 'home', name: '메인페이지', desc: '첫 화면 문구와 서비스 카드 3개입니다.', preview: 'index.html', fields: [
     F.text('home.eyebrow', '작은 제목 (영문)', { max: 40 }), F.area('home.title', '큰 제목', { required: true, rows: 2, hint: '줄바꿈이 그대로 보입니다.' }), F.area('home.lead', '설명 문장', { rows: 2 }),
     F.list('home.services', '서비스 카드', [F.text('title', '서비스 이름', { required: true, max: 20 }), F.text('desc', '한 줄 설명', { max: 40 }), F.image('image', '카드 사진')], { fixed: true }) ] },
-  { id: 'homecare', name: '입주청소 문구', desc: '입주청소 페이지의 제목과 안내 문구입니다.', preview: 'homecare.html', fields: [
-    F.text('homecare.hero.eyebrow', '작은 제목 (영문)', { max: 40 }), F.area('homecare.hero.title', '큰 제목', { required: true, rows: 3 }), F.area('homecare.hero.lead', '설명 문장', { rows: 2 }),
-    F.image('homecare.hero.image', '첫 화면 대표 사진'),
-    F.list('homecare.concerns', '"이런 고민" 항목', [F.text('title', '제목', { required: true, max: 20 }), F.text('desc', '설명', { max: 50 })], { min: 1, max: 8 }),
-    F.list('homecare.types', '서비스 종류 탭', [F.text('title', '서비스 이름', { required: true, max: 20, hint: '견적 질문지 1번 선택지와 이름이 같으면, 탭에서 바로 그 선택지로 시작합니다.' }), F.area('desc', '설명', { rows: 2 }), F.image('image', '사진')], { min: 1, max: 6 }),
-    F.list('homecare.scope', '공간별 작업 범위', [F.text('area', '공간 이름', { required: true, max: 20 }), F.lines('items', '작업 항목 (한 줄에 하나)')], { min: 1, max: 8 }),
-    F.text('homecare.scopeNote', '작업 범위 안내 문장', { max: 100 }),
-    F.list('homecare.process', '작업 절차', [F.text('title', '단계 이름', { required: true, max: 20 }), F.text('desc', '설명', { max: 60 })], { min: 1, max: 6 }),
-    F.lines('homecare.extra.added', '추가 요금이 생길 수 있는 경우 (한 줄에 하나)'),
-    F.lines('homecare.extra.excluded', '기본 작업에서 제외되는 범위 (한 줄에 하나)'),
-    F.text('homecare.extraNote', '추가 요금 안내 문장', { max: 120 }),
-    F.area('homecare.cta.title', '맨 아래 초록 배너 문구', { rows: 2 }) ] },
-  { id: 'gallery', name: '작업 사진', desc: '입주청소 페이지의 전후 사진입니다. 실제 작업 사진만 올려주세요. 고객 얼굴·주소·호수가 보이지 않게 해주세요.', preview: 'homecare.html', fields: [
-    F.list('homecare.gallery', '전후 사진', [F.text('title', '공간 이름', { required: true, max: 20 }), F.image('before', '작업 전 (BEFORE)'), F.image('after', '작업 후 (AFTER)')], { min: 0, max: 12 }) ] },
-  { id: 'faq', name: 'FAQ', desc: '입주청소 페이지의 자주 묻는 질문입니다.', preview: 'homecare.html', fields: [
-    F.list('homecare.faq', '질문과 답변', [F.text('q', '질문', { required: true, max: 80 }), F.area('a', '답변', { required: true, rows: 3 })], { min: 0, max: 20 }) ] },
-  { id: 'quote', name: '견적 질문지', desc: '입주청소 견적 질문지입니다. 질문 문구와 선택지를 바꾸거나, 질문을 숨기거나 새로 추가할 수 있습니다.', preview: 'homecare.html', custom: 'quote' }
+  ...pageSections('homecare', '입주청소'),
+  ...pageSections('business', '정기청소'),
+  ...pageSections('appliance', '가전청소')
 ];
 
 /* ── 화면 뼈대 ── */
@@ -75,7 +89,7 @@ function shell() {
         el('button', { class: 'secondary', type: 'button', id: 'edSave', onclick: saveDraft }, '임시 저장'),
         el('button', { type: 'button', id: 'edPublish', onclick: publish }, '홈페이지에 게시'))),
     el('div', { class: 'ed-wrap' },
-      el('nav', { class: 'ed-nav', id: 'edNav' }, SECTIONS.map(s => el('button', { type: 'button', 'data-id': s.id, onclick: () => go(s.id) }, s.name))),
+      el('nav', { class: 'ed-nav', id: 'edNav' }, SECTIONS.flatMap((s, i) => [s.group && (i === 0 || SECTIONS[i - 1].group !== s.group) ? el('div', { class: 'ed-group' }, s.group) : null, el('button', { type: 'button', 'data-id': s.id, onclick: () => go(s.id) }, s.name)])),
       el('div', { class: 'ed-body card', id: 'edBody' })),
     el('p', { class: 'ed-msg', id: 'edMsg', role: 'status' }));
 }
@@ -91,8 +105,8 @@ function go(id) { current = id; document.querySelectorAll('#edNav button').forEa
 /* ── 항목 그리기 ── */
 function renderSection() {
   const s = SECTIONS.find(x => x.id === current); const body = document.getElementById('edBody');
-  body.replaceChildren(el('h3', {}, s.name), el('p', { class: 'ed-desc' }, s.desc));
-  if (s.custom === 'quote') body.append(quoteEditor()); else s.fields.forEach(f => body.append(field(f, draft, f.path)));
+  body.replaceChildren(el('h3', {}, (s.group ? s.group + ' · ' : '') + s.name), el('p', { class: 'ed-desc' }, s.desc));
+  if (s.custom === 'quote') body.append(quoteEditor(s.quoteKey)); else s.fields.forEach(f => body.append(field(f, draft, f.path)));
 }
 function field(f, obj, path) {
   const v = get(obj, path); const id = 'f' + Math.random().toString(36).slice(2, 9);
@@ -153,8 +167,8 @@ function imageField(obj, path) {
 }
 
 /* ── 견적 질문지 편집 ── */
-function quoteEditor() {
-  const steps = get(draft, 'quote.homecare.steps') || [];
+function quoteEditor(qk) {
+  const steps = get(draft, `quote.${qk}.steps`) || [];
   const box = el('div', { class: 'ed-quote' });
   const draw = () => {
     box.replaceChildren();
@@ -168,7 +182,7 @@ function quoteEditor() {
         custom ? el('button', { type: 'button', class: 'mini danger', onclick: () => { if (confirm('이 질문을 삭제할까요?')) { steps.splice(i, 1); touched(); draw(); } } }, '삭제') : null);
       card.append(hd, field(F.text('title', '질문', { required: true, max: 60 }), s, 'title'), field(F.text('hint', '도움말 (선택)', { max: 120 }), s, 'hint'));
       if (s.type === 'text') card.append(field(F.text('placeholder', '입력칸 예시 문구', { max: 60 }), s, 'placeholder'));
-      if (Array.isArray(s.options)) card.append(optionsEditor(s));
+      if (Array.isArray(s.options)) card.append(optionsEditor(s, qk));
       box.append(card);
     });
     box.append(el('div', { class: 'row' },
@@ -181,7 +195,8 @@ function quoteEditor() {
   };
   draw(); return box;
 }
-function optionsEditor(s) {
+function optionsEditor(s, qk) {
+  const SV = SERVICE_OPTIONS[qk] || [];
   const box = el('div', { class: 'ed-opts' });
   const draw = () => {
     box.replaceChildren(el('div', { class: 'ed-listhd' }, el('strong', {}, '선택지')));
@@ -190,13 +205,13 @@ function optionsEditor(s) {
       const lab = el('input', { value: o.label || '', maxlength: 30, placeholder: '선택지 이름', 'aria-label': '선택지 이름' }); lab.addEventListener('input', () => { o.label = lab.value; touched(); });
       const sub = el('input', { value: o.sub || '', maxlength: 40, placeholder: '작은 설명 (선택)', 'aria-label': '작은 설명' }); sub.addEventListener('input', () => { o.sub = sub.value; touched(); });
       row.append(lab, sub);
-      if (s.id === 'service') { const sel = el('select', { 'aria-label': '저장될 서비스 분류' }, HOMECARE_SERVICES.map(v => el('option', { value: v, selected: o.service === v }, '분류: ' + v))); sel.addEventListener('change', () => { o.service = sel.value; touched(); }); if (!o.service) o.service = HOMECARE_SERVICES[0]; row.append(sel); }
+      if (s.id === 'service') { const sel = el('select', { 'aria-label': '저장될 서비스 분류' }, SV.map(v => el('option', { value: v, selected: o.service === v }, '분류: ' + v))); sel.addEventListener('change', () => { o.service = sel.value; touched(); }); if (!o.service) o.service = SV[0]; row.append(sel); }
       if (s.type === 'multi') { const n = el('input', { type: 'checkbox', title: '다른 선택과 함께 고를 수 없는 "해당 없음" 선택지' }); n.checked = !!o.none; n.addEventListener('change', () => { o.none = n.checked; touched(); }); row.append(el('label', { class: 'ed-none' }, n, '해당 없음')); }
       row.append(el('button', { type: 'button', class: 'mini', disabled: i === 0, onclick: () => { [s.options[i - 1], s.options[i]] = [s.options[i], s.options[i - 1]]; touched(); draw(); } }, '↑'),
         el('button', { type: 'button', class: 'mini danger', disabled: s.options.length <= 2, onclick: () => { s.options.splice(i, 1); touched(); draw(); } }, '삭제'));
       box.append(row);
     });
-    if (s.options.length < 12) box.append(el('button', { type: 'button', class: 'secondary ed-add', onclick: () => { s.options.push(s.id === 'service' ? { label: '', service: HOMECARE_SERVICES[0] } : { label: '' }); touched(); draw(); } }, '+ 선택지 추가'));
+    if (s.options.length < 12) box.append(el('button', { type: 'button', class: 'secondary ed-add', onclick: () => { s.options.push(s.id === 'service' ? { label: '', service: SV[0] } : { label: '' }); touched(); draw(); } }, '+ 선택지 추가'));
   };
   draw(); return box;
 }
@@ -208,13 +223,16 @@ function validate(c) {
   https(get(c, 'site.kakaoUrl'), '카카오톡 주소', 'https://open.kakao.com/'); https(get(c, 'site.blogUrl'), '블로그 주소'); https(get(c, 'banner.link'), '배너 링크');
   if (!get(c, 'site.kakaoUrl')) errs.push('카카오톡 오픈채팅 주소를 입력해 주세요.');
   if (get(c, 'banner.enabled') && !String(get(c, 'banner.text') || '').trim()) errs.push('배너를 켜려면 배너 문구가 필요합니다.');
-  [['home.title', '메인 큰 제목'], ['homecare.hero.title', '입주청소 큰 제목'], ['site.brand', '브랜드 이름']].forEach(([p, n]) => { if (!String(get(c, p) || '').trim()) errs.push(n + '을(를) 입력해 주세요.'); });
-  (get(c, 'homecare.faq') || []).forEach((x, i) => { if (!String(x.q || '').trim() || !String(x.a || '').trim()) errs.push(`FAQ ${i + 1}번: 질문과 답변을 모두 입력해 주세요.`); });
-  (get(c, 'homecare.gallery') || []).forEach((x, i) => { if (!String(x.title || '').trim()) errs.push(`작업 사진 ${i + 1}번: 공간 이름을 입력해 주세요.`); });
-  (get(c, 'quote.homecare.steps') || []).forEach((s, i) => {
-    if (!String(s.title || '').trim()) errs.push(`질문지 ${i + 1}번: 질문 문구가 비어 있습니다.`);
-    if (Array.isArray(s.options)) { if (s.options.filter(o => String(o.label || '').trim()).length < 2) errs.push(`질문지 ${i + 1}번: 선택지가 2개 이상 필요합니다.`); s.options.forEach((o, k) => { if (!String(o.label || '').trim()) errs.push(`질문지 ${i + 1}번 선택지 ${k + 1}: 이름이 비어 있습니다.`); }); }
-    if (s.id === 'service' && s.options.some(o => !HOMECARE_SERVICES.includes(o.service))) errs.push('질문지 1번: 각 선택지의 서비스 분류를 골라주세요.');
+  [['home.title', '메인 큰 제목'], ['homecare.hero.title', '입주청소 큰 제목'], ['business.hero.title', '정기청소 큰 제목'], ['appliance.hero.title', '가전청소 큰 제목'], ['site.brand', '브랜드 이름']].forEach(([p, n]) => { if (!String(get(c, p) || '').trim()) errs.push(n + '을(를) 입력해 주세요.'); });
+  const NAMES = { homecare: '입주청소', business: '정기청소', appliance: '가전청소' };
+  Object.keys(NAMES).forEach(k => { const N = NAMES[k];
+    (get(c, k + '.faq') || []).forEach((x, i) => { if (!String(x.q || '').trim() || !String(x.a || '').trim()) errs.push(`${N} FAQ ${i + 1}번: 질문과 답변을 모두 입력해 주세요.`); });
+    (get(c, k + '.gallery') || []).forEach((x, i) => { if (!String(x.title || '').trim()) errs.push(`${N} 작업 사진 ${i + 1}번: 이름을 입력해 주세요.`); });
+    (get(c, `quote.${k}.steps`) || []).forEach((s, i) => {
+      if (!String(s.title || '').trim()) errs.push(`${N} 질문지 ${i + 1}번: 질문 문구가 비어 있습니다.`);
+      if (Array.isArray(s.options)) { if (s.options.filter(o => String(o.label || '').trim()).length < 2) errs.push(`${N} 질문지 ${i + 1}번: 선택지가 2개 이상 필요합니다.`); s.options.forEach((o, j) => { if (!String(o.label || '').trim()) errs.push(`${N} 질문지 ${i + 1}번 선택지 ${j + 1}: 이름이 비어 있습니다.`); }); }
+      if (s.id === 'service' && s.options.some(o => !(SERVICE_OPTIONS[k] || []).includes(o.service))) errs.push(`${N} 질문지 1번: 각 선택지의 서비스 분류를 골라주세요.`);
+    });
   });
   if (JSON.stringify(c).length > 280000) errs.push('내용이 너무 깁니다.');
   return errs;
@@ -262,7 +280,7 @@ function openPreview() {
   const load = () => { previewFrame = el('iframe', { src: SITE_BASE + page + '?preview=1', title: '미리보기' }); frameBox.replaceChildren(previewFrame); frameBox.classList.toggle('mobile', mobile); };
   const dlg = modal('미리보기 (저장되지 않은 변경도 보입니다)', el('div', {},
     el('div', { class: 'row', style: 'margin-bottom:10px' },
-      el('select', { onchange: e => { page = e.target.value; load(); } }, [['index.html', '메인페이지'], ['homecare.html', '입주청소']].map(([v, n]) => el('option', { value: v, selected: v === page }, n))),
+      el('select', { onchange: e => { page = e.target.value; load(); } }, [['index.html', '메인페이지'], ['homecare.html', '입주청소'], ['business.html', '정기청소'], ['appliance.html', '가전청소']].map(([v, n]) => el('option', { value: v, selected: v === page }, n))),
       el('button', { type: 'button', class: 'secondary', onclick: () => { mobile = !mobile; load(); } }, 'PC / 모바일 전환')),
     frameBox), 'wide');
   load(); dlg.addEventListener('close', () => { previewFrame = null; });
