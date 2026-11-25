@@ -54,4 +54,4 @@ const cell=v=>{let s=String(v!==null&&typeof v==='object'?JSON.stringify(v):v??'
 const csv=[keys.join(','),...data.map(r=>keys.map(k=>cell(r[k])).join(','))].join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));a.download='inquiries-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 
 document.querySelectorAll('.tabbtn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabbtn').forEach(x=>x.classList.toggle('on',x===b));$('viewInquiries').hidden=b.dataset.view!=='viewInquiries';$('viewEditor').hidden=b.dataset.view!=='viewEditor';if(b.dataset.view==='viewEditor'&&window.openContentEditor)window.openContentEditor()}));
-</script><script src="../main/assets/content.js?v=2"></script><script src="editor.js?v=3"></script></body></html>
+</script><script src="../main/assets/content.js?v=7"></script><script src="editor.js?v=4"></script></body></html>

@@ -33,6 +33,31 @@ const F = {
   lines: (path, label, o = {}) => ({ t: 'lines', path, label, ...o }),
   list: (path, label, fields, o = {}) => ({ t: 'list', path, label, fields, ...o })
 };
+function officeSections() {
+  const k = 'office', name = '정기청소', pv = 'business.html';
+  const head = (sec, label, lead = true) => [F.area(`${k}.heads.${sec}.title`, `${label} — 구역 제목`, { rows: 2 })].concat(lead ? [F.area(`${k}.heads.${sec}.lead`, `${label} — 구역 설명`, { rows: 2 })] : []);
+  return [
+    { id: 'office_text', group: name, name: '문구', desc: '정기청소 페이지의 제목과 안내 문구입니다.', preview: pv, fields: [
+      F.text(`${k}.hero.eyebrow`, '첫 화면 — 작은 제목', { max: 40 }), F.area(`${k}.hero.title`, '첫 화면 — 큰 제목', { required: true, rows: 3, hint: '줄바꿈이 그대로 보입니다.' }), F.area(`${k}.hero.lead`, '첫 화면 — 설명 문장', { rows: 2 }),
+      F.image(`${k}.hero.image`, '첫 화면 — 배경 사진', { hint: '어둡게 깔리는 배경 사진입니다. 작업 현장 사진을 추천합니다.' }),
+      F.list(`${k}.promises`, '첫 화면 아래 약속 카드', [F.text('title', '제목', { required: true, max: 20 }), F.text('desc', '설명', { max: 40 })], { min: 0, max: 4 }),
+      ...head('audience', '공간 유형'),
+      F.list(`${k}.audience`, '공간 유형 카드', [F.text('tag', '공간 이름', { required: true, max: 20 }), F.text('quote', '고객의 말 (따옴표 안 문장)', { max: 60 }), F.lines('points', '관리 포인트 (한 줄에 하나)'),
+        F.text('service', '견적 질문지 연결', { max: 20, hint: '견적 질문지 1번 선택지 이름과 같게 적으면, 카드에서 바로 그 선택지로 시작합니다.' })], { min: 1, max: 6 }),
+      ...head('principles', '계약 원칙'), F.list(`${k}.principles`, '계약 원칙', [F.text('title', '제목', { required: true, max: 30 }), F.area('desc', '설명', { rows: 2 })], { min: 1, max: 5 }),
+      ...head('scope', '관리 범위', false), F.text(`${k}.scopeNote`, '관리 범위 — 구역 설명', { max: 120 }),
+      F.list(`${k}.scope`, '관리 범위 카드', [F.text('area', '공간 이름', { required: true, max: 20 }), F.lines('items', '작업 항목 (한 줄에 하나)')], { min: 1, max: 8 }),
+      ...head('services', '서비스'), F.list(`${k}.services`, '서비스 카드', [F.text('title', '서비스 이름', { required: true, max: 20 }), F.area('desc', '설명', { rows: 2 }), F.lines('tags', '태그 (한 줄에 하나)'), F.image('image', '사진'),
+        F.text('link', '자세히 보기 연결 페이지 (선택)', { max: 30, hint: '예: appliance.html — 비워두면 견적 문의 버튼이 나옵니다.' })], { min: 1, max: 6 }),
+      ...head('process', '진행 절차'), F.list(`${k}.process`, '진행 절차 단계', [F.text('title', '단계 이름', { required: true, max: 20 }), F.text('desc', '설명', { max: 60 })], { min: 1, max: 6 }),
+      F.area(`${k}.cta.title`, '맨 아래 배너 — 제목', { rows: 2 }), F.text(`${k}.cta.lead`, '맨 아래 배너 — 설명', { max: 80 }) ] },
+    { id: 'office_gallery', group: name, name: '작업 사진', desc: '정기청소 페이지의 전후 사진입니다. "분류"가 같은 사진끼리 위쪽 버튼으로 걸러 볼 수 있습니다. 고객 얼굴·상호·주소가 보이지 않게 해주세요.', preview: pv, fields: [
+      ...head('cases', '작업 사진'), F.list(`${k}.cases`, '전후 사진', [F.text('title', '사진 이름', { required: true, max: 20 }), F.text('category', '분류 (예: 사무실, 병원 · 학원)', { max: 20 }), F.image('before', '작업 전 (BEFORE)'), F.image('after', '작업 후 (AFTER)')], { min: 0, max: 24 }) ] },
+    { id: 'office_faq', group: name, name: 'FAQ', desc: '정기청소 페이지의 자주 묻는 질문입니다.', preview: pv, fields: [
+      ...head('faq', 'FAQ'), F.list(`${k}.faq`, '질문과 답변', [F.text('q', '질문', { required: true, max: 80 }), F.area('a', '답변', { required: true, rows: 3 })], { min: 0, max: 20 }) ] },
+    { id: 'business_quote', group: name, name: '견적 질문지', desc: '정기청소 견적 질문지입니다. 질문 문구와 선택지를 바꾸거나, 질문을 숨기거나 새로 추가할 수 있습니다.', preview: pv, custom: 'quote', quoteKey: 'business' }
+  ];
+}
 function pageSections(k, name) {
   const head = (sec, label, lead = true) => [F.area(`${k}.heads.${sec}.title`, `${label} — 구역 제목`, { rows: 2 })].concat(lead ? [F.area(`${k}.heads.${sec}.lead`, `${label} — 구역 설명`, { rows: 2 })] : []);
   const pv = k + '.html';
@@ -73,7 +98,7 @@ const SECTIONS = [
     F.text('home.eyebrow', '작은 제목 (영문)', { max: 40 }), F.area('home.title', '큰 제목', { required: true, rows: 2, hint: '줄바꿈이 그대로 보입니다.' }), F.area('home.lead', '설명 문장', { rows: 2 }),
     F.list('home.services', '서비스 카드', [F.text('title', '서비스 이름', { required: true, max: 20 }), F.text('desc', '한 줄 설명', { max: 40 }), F.image('image', '카드 사진')], { fixed: true }) ] },
   ...pageSections('homecare', '입주청소'),
-  ...pageSections('business', '정기청소'),
+  ...officeSections(),
   ...pageSections('appliance', '가전청소')
 ];
 
@@ -236,11 +261,12 @@ function validate(c) {
   https(get(c, 'site.kakaoUrl'), '카카오톡 주소', 'https://open.kakao.com/'); https(get(c, 'site.blogUrl'), '블로그 주소'); https(get(c, 'banner.link'), '배너 링크');
   if (!get(c, 'site.kakaoUrl')) errs.push('카카오톡 오픈채팅 주소를 입력해 주세요.');
   if (get(c, 'banner.enabled') && !String(get(c, 'banner.text') || '').trim()) errs.push('배너를 켜려면 배너 문구가 필요합니다.');
-  [['home.title', '메인 큰 제목'], ['homecare.hero.title', '입주청소 큰 제목'], ['business.hero.title', '정기청소 큰 제목'], ['appliance.hero.title', '가전청소 큰 제목'], ['site.brand', '브랜드 이름']].forEach(([p, n]) => { if (!String(get(c, p) || '').trim()) errs.push(n + '을(를) 입력해 주세요.'); });
+  [['home.title', '메인 큰 제목'], ['homecare.hero.title', '입주청소 큰 제목'], ['office.hero.title', '정기청소 큰 제목'], ['appliance.hero.title', '가전청소 큰 제목'], ['site.brand', '브랜드 이름']].forEach(([p, n]) => { if (!String(get(c, p) || '').trim()) errs.push(n + '을(를) 입력해 주세요.'); });
   const NAMES = { homecare: '입주청소', business: '정기청소', appliance: '가전청소' };
   Object.keys(NAMES).forEach(k => { const N = NAMES[k];
-    (get(c, k + '.faq') || []).forEach((x, i) => { if (!String(x.q || '').trim() || !String(x.a || '').trim()) errs.push(`${N} FAQ ${i + 1}번: 질문과 답변을 모두 입력해 주세요.`); });
-    (get(c, k + '.gallery') || []).forEach((x, i) => { if (!String(x.title || '').trim()) errs.push(`${N} 작업 사진 ${i + 1}번: 이름을 입력해 주세요.`); });
+    const ck = k === 'business' ? 'office' : k;
+    (get(c, ck + '.faq') || []).forEach((x, i) => { if (!String(x.q || '').trim() || !String(x.a || '').trim()) errs.push(`${N} FAQ ${i + 1}번: 질문과 답변을 모두 입력해 주세요.`); });
+    (get(c, ck + (k === 'business' ? '.cases' : '.gallery')) || []).forEach((x, i) => { if (!String(x.title || '').trim()) errs.push(`${N} 작업 사진 ${i + 1}번: 이름을 입력해 주세요.`); });
     (get(c, `quote.${k}.steps`) || []).forEach((s, i) => {
       if (!String(s.title || '').trim()) errs.push(`${N} 질문지 ${i + 1}번: 질문 문구가 비어 있습니다.`);
       if (Array.isArray(s.options)) { if (s.options.filter(o => String(o.label || '').trim()).length < 2) errs.push(`${N} 질문지 ${i + 1}번: 선택지가 2개 이상 필요합니다.`); s.options.forEach((o, j) => { if (!String(o.label || '').trim()) errs.push(`${N} 질문지 ${i + 1}번 선택지 ${j + 1}: 이름이 비어 있습니다.`); }); }
