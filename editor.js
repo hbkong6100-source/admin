@@ -90,8 +90,20 @@ function shell() {
         el('button', { type: 'button', id: 'edPublish', onclick: publish }, '홈페이지에 게시'))),
     el('div', { class: 'ed-wrap' },
       el('nav', { class: 'ed-nav', id: 'edNav' }, SECTIONS.flatMap((s, i) => [s.group && (i === 0 || SECTIONS[i - 1].group !== s.group) ? el('div', { class: 'ed-group' }, s.group) : null, el('button', { type: 'button', 'data-id': s.id, onclick: () => go(s.id) }, s.name)])),
-      el('div', { class: 'ed-body card', id: 'edBody' })),
+      el('div', { class: 'ed-body card', id: 'edBody' }),
+      el('aside', { class: 'ed-live card', id: 'edLive' },
+        el('div', { class: 'ed-livebar' },
+          el('select', { id: 'edLivePage', 'aria-label': '미리보기 페이지', onchange: e => { live.page = e.target.value; liveLoad(false); } }, PAGES.map(([v, n]) => el('option', { value: v }, n))),
+          el('div', { class: 'ed-seg' },
+            el('button', { type: 'button', id: 'edLivePc', class: 'on', onclick: () => liveDevice(false) }, 'PC'),
+            el('button', { type: 'button', id: 'edLiveM', onclick: () => liveDevice(true) }, '모바일')),
+          el('button', { type: 'button', class: 'mini', title: '크게 보기', onclick: openPreview }, '크게 보기')),
+        el('p', { class: 'ed-livehint' }, '편집 칸을 누르면 홈페이지 어디에 나오는지 주황색 테두리로 표시됩니다.'),
+        el('div', { class: 'ed-livebox', id: 'edLiveBox' }))),
     el('p', { class: 'ed-msg', id: 'edMsg', role: 'status' }));
+  root.querySelector('#edBody').addEventListener('focusin', onFieldFocus);
+  root.querySelector('#edBody').addEventListener('click', onFieldFocus);
+  addEventListener('resize', liveScale);
 }
 function status() {
   const s = document.getElementById('edStatus'); if (!s) return;
@@ -99,18 +111,19 @@ function status() {
   s.classList.toggle('dirty', dirty);
 }
 const msg = (t, bad) => { const m = document.getElementById('edMsg'); if (m) { m.textContent = t; m.className = 'ed-msg' + (bad ? ' bad' : ''); } };
-function touched() { dirty = true; status(); }
-function go(id) { current = id; document.querySelectorAll('#edNav button').forEach(b => b.classList.toggle('on', b.dataset.id === id)); renderSection(); }
+function touched() { dirty = true; status(); clearTimeout(live.timer); live.timer = setTimeout(() => liveLoad(true), 700); }
+function go(id) { current = id; document.querySelectorAll('#edNav button').forEach(b => b.classList.toggle('on', b.dataset.id === id)); renderSection(); const sp = SECTIONS.find(x => x.id === id).preview; if (sp && sp !== live.page) { live.page = sp; live.focus = null; liveLoad(false); } else if (!live.frame) liveLoad(false); }
 
 /* ── 항목 그리기 ── */
 function renderSection() {
   const s = SECTIONS.find(x => x.id === current); const body = document.getElementById('edBody');
   body.replaceChildren(el('h3', {}, (s.group ? s.group + ' · ' : '') + s.name), el('p', { class: 'ed-desc' }, s.desc));
-  if (s.custom === 'quote') body.append(quoteEditor(s.quoteKey)); else s.fields.forEach(f => body.append(field(f, draft, f.path)));
+  if (s.custom === 'quote') body.append(quoteEditor(s.quoteKey)); else s.fields.forEach(f => body.append(field(f, draft, f.path, { path: f.path })));
 }
-function field(f, obj, path) {
+function field(f, obj, path, loc) {
   const v = get(obj, path); const id = 'f' + Math.random().toString(36).slice(2, 9);
   const wrap = el('div', { class: 'ed-field' + (f.t === 'list' ? ' ed-listwrap' : '') });
+  if (loc) { wrap.dataset.lp = loc.path; if (loc.index != null) wrap.dataset.li = loc.index; wrap.dataset.ll = f.label; }
   const lab = el('label', { for: id }, f.label, f.required ? el('em', {}, ' *') : null);
   if (f.t === 'text' || f.t === 'url') {
     const i = el('input', { id, value: v ?? '', maxlength: f.max || (f.t === 'url' ? 300 : 200), placeholder: f.t === 'url' ? (f.prefix || 'https://') : '', inputmode: f.t === 'url' ? 'url' : null });
@@ -143,7 +156,7 @@ function listField(f, obj, path) {
         el('button', { type: 'button', class: 'mini', title: '위로', disabled: i === 0, onclick: () => { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; touched(); draw(); } }, '↑'),
         el('button', { type: 'button', class: 'mini', title: '아래로', disabled: i === arr.length - 1, onclick: () => { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; touched(); draw(); } }, '↓'),
         el('button', { type: 'button', class: 'mini danger', disabled: arr.length <= (f.min || 0), onclick: () => { if (confirm('이 항목을 삭제할까요?')) { arr.splice(i, 1); touched(); draw(); } } }, '삭제')];
-      box.append(el('div', { class: 'ed-item' }, el('div', { class: 'ed-itemhd' }, el('span', {}, `${i + 1}`), ...tools), f.fields.map(sf => field(sf, item, sf.path))));
+      box.append(el('div', { class: 'ed-item' }, el('div', { class: 'ed-itemhd' }, el('span', {}, `${i + 1}`), ...tools), f.fields.map(sf => field(sf, item, sf.path, { path, index: i }))));
     });
     if (!f.fixed && arr.length < (f.max || 20)) box.append(el('button', { type: 'button', class: 'secondary ed-add', onclick: () => { const n = {}; f.fields.forEach(sf => set(n, sf.path, sf.t === 'lines' ? [] : '')); if (!get(obj, path)) set(obj, path, []); get(obj, path).push(n); touched(); draw(); } }, '+ 항목 추가'));
   };
@@ -174,7 +187,7 @@ function quoteEditor(qk) {
     box.replaceChildren();
     steps.forEach((s, i) => {
       const locked = LOCKED_STEPS.includes(s.id); const custom = s.id.startsWith('custom_');
-      const card = el('div', { class: 'ed-item' + (s.hidden ? ' off' : '') });
+      const card = el('div', { class: 'ed-item' + (s.hidden ? ' off' : ''), 'data-lp': `quote.${qk}.steps`, 'data-step': s.id, 'data-ll': s.title });
       const hd = el('div', { class: 'ed-itemhd' }, el('span', {}, `${i + 1}`), el('b', { class: 'ed-kind' }, { single: '하나 선택', multi: '여러 개 선택', text: '직접 입력', schedule: '날짜·시간', notes: '요청 사항', contact: '연락처·동의' }[s.type] || s.type),
         el('button', { type: 'button', class: 'mini', disabled: i === 0 || s.id === 'service' || steps[i - 1].id === 'service', onclick: () => { [steps[i - 1], steps[i]] = [steps[i], steps[i - 1]]; touched(); draw(); } }, '↑'),
         el('button', { type: 'button', class: 'mini', disabled: i >= steps.length - 2 || s.id === 'contact', onclick: () => { [steps[i + 1], steps[i]] = [steps[i], steps[i + 1]]; touched(); draw(); } }, '↓'),
@@ -269,18 +282,42 @@ async function publish() {
 }
 
 /* ── 미리보기 ── */
+const PAGES = [['index.html', '메인페이지'], ['homecare.html', '입주청소'], ['business.html', '정기청소'], ['appliance.html', '가전청소']];
+const live = { page: 'index.html', mobile: false, frame: null, focus: null, timer: null };
 let previewFrame = null;
 addEventListener('message', e => {
-  if (e.origin !== location.origin || !previewFrame || e.source !== previewFrame.contentWindow) return;
-  if (e.data && e.data.type === 'banjjak-preview-ready') previewFrame.contentWindow.postMessage({ type: 'banjjak-preview', content: draft }, location.origin);
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'banjjak-preview-ready') return;
+  const fr = [live.frame, previewFrame].find(f => f && e.source === f.contentWindow); if (!fr) return;
+  fr.contentWindow.postMessage({ type: 'banjjak-preview', content: draft, scrollY: Number(fr.dataset.scroll || 0), focus: fr === live.frame ? live.focus : null }, location.origin);
 });
+function liveLoad(keepScroll) {
+  const box = document.getElementById('edLiveBox'); if (!box || !draft || getComputedStyle(document.getElementById('edLive')).display === 'none') return;
+  let y = 0; try { if (keepScroll && live.frame) y = live.frame.contentWindow.scrollY; } catch (e) {}
+  const sel = document.getElementById('edLivePage'); if (sel) sel.value = live.page;
+  const f = el('iframe', { src: SITE_BASE + live.page + '?preview=1', title: '실시간 미리보기', tabindex: '-1' }); f.dataset.scroll = String(y);
+  live.frame = f; box.replaceChildren(f); liveScale();
+}
+function liveScale() {
+  const box = document.getElementById('edLiveBox'); const f = live.frame; if (!box || !f) return;
+  const W = live.mobile ? 390 : 1280; const s = Math.min(1, box.clientWidth / W); const H = box.clientHeight / s;
+  Object.assign(f.style, { width: W + 'px', height: H + 'px', transform: `scale(${s})`, left: live.mobile ? Math.max(0, (box.clientWidth - W * s) / 2) + 'px' : '0' });
+}
+function liveDevice(m) { live.mobile = m; document.getElementById('edLivePc').classList.toggle('on', !m); document.getElementById('edLiveM').classList.toggle('on', m); liveLoad(true); }
+function onFieldFocus(e) {
+  const w = e.target.closest('[data-lp]'); if (!w) return;
+  const focus = { path: w.dataset.lp, label: w.dataset.ll || '', index: w.dataset.li != null ? Number(w.dataset.li) : null };
+  if (w.dataset.step) { const st = (get(draft, w.dataset.lp) || []).find(x => x.id === w.dataset.step); focus.stepId = w.dataset.step; focus.hidden = !!(st && st.hidden); focus.label = (st && st.title) || focus.label; }
+  if (live.focus && live.focus.path === focus.path && live.focus.index === focus.index && live.focus.stepId === focus.stepId && e.type === 'click') return;
+  live.focus = focus;
+  if (live.frame && live.frame.contentWindow) live.frame.contentWindow.postMessage({ type: 'banjjak-locate', focus }, location.origin);
+}
 function openPreview() {
-  const sec = SECTIONS.find(s => s.id === current); let page = sec.preview || 'homecare.html'; let mobile = false;
+  let page = live.page || 'homecare.html'; let mobile = live.mobile;
   const frameBox = el('div', { class: 'pv-frame' });
   const load = () => { previewFrame = el('iframe', { src: SITE_BASE + page + '?preview=1', title: '미리보기' }); frameBox.replaceChildren(previewFrame); frameBox.classList.toggle('mobile', mobile); };
   const dlg = modal('미리보기 (저장되지 않은 변경도 보입니다)', el('div', {},
     el('div', { class: 'row', style: 'margin-bottom:10px' },
-      el('select', { onchange: e => { page = e.target.value; load(); } }, [['index.html', '메인페이지'], ['homecare.html', '입주청소'], ['business.html', '정기청소'], ['appliance.html', '가전청소']].map(([v, n]) => el('option', { value: v, selected: v === page }, n))),
+      el('select', { onchange: e => { page = e.target.value; load(); } }, PAGES.map(([v, n]) => el('option', { value: v, selected: v === page }, n))),
       el('button', { type: 'button', class: 'secondary', onclick: () => { mobile = !mobile; load(); } }, 'PC / 모바일 전환')),
     frameBox), 'wide');
   load(); dlg.addEventListener('close', () => { previewFrame = null; });
@@ -328,6 +365,6 @@ async function uploadImage(file) {
 /* ── 탭 연결 ── */
 let opened = false;
 window.openContentEditor = async () => { if (opened && draft) return; root.replaceChildren(el('p', {}, '불러오는 중…')); if (await loadAll()) { opened = true; shell(); status(); go(current); msg(''); } };
-window.resetContentEditor = () => { opened = false; draft = null; dirty = false; root.replaceChildren(); };
+window.resetContentEditor = () => { opened = false; draft = null; dirty = false; live.frame = null; live.focus = null; root.replaceChildren(); };
 addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 })();
